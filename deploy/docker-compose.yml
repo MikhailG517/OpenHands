@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  openhands:
+    image: ghcr.io/all-hands-ai/openhands:0.9
+    pull_policy: always
+    container_name: openhands_canvas
+    ports:
+      - "3000:3000"
+    volumes:
+      - openhands_data:/home/openhands/.openhands
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.9-nikolaik
+      - SANDBOX_USER_ID=1000
+      - WORKSPACE_MOUNT_PATH=/workspace
+    restart: unless-stopped
+
+volumes:
+  openhands_data:
+    driver: local

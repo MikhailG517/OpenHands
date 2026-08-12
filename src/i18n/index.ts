@@ -14,6 +14,7 @@ export const OPENHANDS_I18N_NAMESPACE = "openhands";
 
 export const AvailableLanguages = [
   { label: "English", value: "en" },
+  { label: "Русский", value: "ru" },
   { label: "日本語", value: "ja" },
   { label: "简体中文", value: "zh-CN" },
   { label: "繁體中文", value: "zh-TW" },

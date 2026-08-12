@@ -38,6 +38,7 @@ import {
   OPENAI_SUBSCRIPTION_VENDOR,
   resolveLlmAuthType,
 } from "#/constants/llm-subscription";
+import { useDetectLlmProvider } from "#/hooks/use-detect-llm-provider";
 import {
   normalizeFieldValue,
   SettingsFormValues,
@@ -113,6 +114,9 @@ export function LlmSettingsLocalView() {
     null,
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-detect provider hook
+  const providerDetection = useDetectLlmProvider();
 
   useEffect(() => {
     setHideSectionHeader(viewMode !== "list");
@@ -237,6 +241,22 @@ export function LlmSettingsLocalView() {
     },
     [viewMode, profileName, existingNames],
   );
+
+  const handleAutoDetectProvider = useCallback(async () => {
+    if (!saveControl) return;
+
+    const baseUrl = saveControl.values["llm.base_url"];
+    const apiKey = saveControl.values["llm.api_key"];
+
+    if (typeof baseUrl === "string" && baseUrl.trim()) {
+      await providerDetection.detectProvider(
+        baseUrl.trim(),
+        typeof apiKey === "string" ? apiKey : undefined,
+      );
+    } else {
+      providerDetection.reset();
+    }
+  }, [saveControl, providerDetection]);
 
   const handleSave = useCallback(async () => {
     if (!saveControl || !isNameValid) return;
@@ -414,6 +434,61 @@ export function LlmSettingsLocalView() {
         onChange={setProfileName}
         isRequired
       />
+
+      {/* Auto-detect provider section */}
+      {viewMode === "create" && (
+        <div className="flex flex-col gap-2 rounded-lg border border-border-primary bg-surface-secondary p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary-light">
+                {t(I18nKey.SETTINGS$AUTO_DETECT_PROVIDER)}
+              </p>
+              <p className="text-xs text-tertiary-light">
+                {t(I18nKey.SETTINGS$AUTO_DETECT_PROVIDER_HINT)}
+              </p>
+            </div>
+            <BrandButton
+              testId="auto-detect-btn"
+              type="button"
+              variant="secondary"
+              onClick={handleAutoDetectProvider}
+              isDisabled={
+                providerDetection.isDetecting ||
+                !saveControl?.values["llm.base_url"]
+              }
+              aria-busy={providerDetection.isDetecting}
+            >
+              {providerDetection.isDetecting
+                ? t(I18nKey.SETTINGS$DETECTING)
+                : t(I18nKey.SETTINGS$AUTO_DETECT_PROVIDER)}
+            </BrandButton>
+          </div>
+
+          {providerDetection.error && (
+            <p className="text-xs text-danger-default">
+              {t(I18nKey.SETTINGS$PROVIDER_DETECTION_FAILED)}:{" "}
+              {providerDetection.error}
+            </p>
+          )}
+
+          {providerDetection.detectedProvider && (
+            <div className="mt-2 rounded border border-success-border bg-success-surface p-3">
+              <p className="text-xs font-medium text-success-default">
+                {t(I18nKey.SETTINGS$DETECTING_PROVIDER)}:{" "}
+                {providerDetection.detectedProvider}
+              </p>
+              {providerDetection.detectedModels.length > 0 && (
+                <p className="mt-1 text-xs text-tertiary-light">
+                  {t(I18nKey.SETTINGS$MODELS_FOUND)}:{" "}
+                  {providerDetection.detectedModels.slice(0, 5).join(", ")}
+                  {providerDetection.detectedModels.length > 5 &&
+                    ` (+${providerDetection.detectedModels.length - 5})`}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Profile form - key ensures form remounts when switching profiles */}
       <LlmSettingsScreen
